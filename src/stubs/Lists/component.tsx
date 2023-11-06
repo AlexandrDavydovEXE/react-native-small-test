@@ -134,16 +134,6 @@ const Lists = () => {
   const hideSnackbar = () => {
     setSnackbarVisible(false);
   };
-  console.log(
-    "isFetching.current :: ",
-    isFetching.current,
-    "isFocused :: ",
-    isFocused,
-    "currentPage ::: ",
-    currentPage,
-    "list:: ",
-    list.length
-  );
 
   return (
     <>
