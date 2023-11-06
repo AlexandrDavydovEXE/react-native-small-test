@@ -1,6 +1,12 @@
-import React, {useState} from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
-import {StyleSheet, FlatList, Text, View} from 'react-native';
+import {
+  StyleSheet,
+  FlatList,
+  Text,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import {
   IconButton,
   Card,
@@ -10,13 +16,41 @@ import {
   Dialog,
   Button,
   Snackbar,
-} from 'react-native-paper';
-import {range} from 'lodash';
+} from "react-native-paper";
+import { range } from "lodash";
+import { loadData } from "../../services/api";
+import { useIsFocused } from "@react-navigation/native";
 
-const data = range(10).map(index => ({index}));
+const data = range(10).map((index) => ({ index }));
+
+type RemoveDialogProps = {
+  visible: boolean;
+  hideDialog: () => void;
+  onOkPress: () => void;
+};
+
+type RemoveDialogErrorProps = {
+  visible: boolean;
+  onDismissSnackBar: () => void;
+};
+
+type MovieList = {
+  description: string;
+  favorite_count: number;
+  id: number;
+  item_count: number;
+  iso_639_1: string;
+  list_type: string;
+  name: string;
+  poster_path: string | null;
+};
 
 //TODO: interviewee add type
-const RemoveDialog = ({visible, hideDialog, onOkPress}) => (
+const RemoveDialog: React.FC<RemoveDialogProps> = ({
+  visible,
+  hideDialog,
+  onOkPress,
+}) => (
   <Portal>
     <Dialog visible={visible} onDismiss={hideDialog}>
       <Dialog.Content>
@@ -31,15 +65,58 @@ const RemoveDialog = ({visible, hideDialog, onOkPress}) => (
 );
 
 //TODO: interviewee add type
-const RemoveDialogError = ({visible, onDismissSnackBar}) => (
+const RemoveDialogError: React.FC<RemoveDialogErrorProps> = ({
+  visible,
+  onDismissSnackBar,
+}) => (
   <Snackbar visible={visible} onDismiss={onDismissSnackBar}>
     Oops, something went wrong
   </Snackbar>
 );
 
 const Lists = () => {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
+  const [list, setList] = useState<MovieList[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1); // Current page
+  const itemsPerPage = 20; // Number of items to load per page
+  const isFetching = useRef(false); // Flag to prevent multiple fetch calls
+  const isFocused = useIsFocused();
+  // const [isErrorComponentVisible, setIsErrorComponentVisible] = useState(false)  // put this if we want specify error;
+
+  const requestList = async () => {
+    try {
+      if (isFetching.current) return; //prevent multi req
+      isFetching.current = true;
+      const newData = await loadData(currentPage);
+      isFetching.current = false;
+      if (newData?.length > 0) {
+        setList((list) => [...list, ...newData]); // Append the new data to the existing data
+      }
+    } catch (e) {
+      // setIsErrorComponentVisible(true); // put this if we want specify error
+      console.error(e);
+      isFetching.current = false; // Reset the fetching flag
+      throw new Error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (list?.length < currentPage * itemsPerPage && isFocused) {
+      requestList();
+    }
+  }, [currentPage, isFocused]);
+  useEffect(() => {
+    if (!isFocused) {
+      setCurrentPage(1);
+      setList([]);
+    }
+  }, [isFocused]);
+
+  const handleScroll = () => {
+    list?.length === currentPage * itemsPerPage &&
+      setCurrentPage(currentPage + 1);
+  };
 
   const showModal = () => {
     setModalVisible(true);
@@ -57,19 +134,35 @@ const Lists = () => {
   const hideSnackbar = () => {
     setSnackbarVisible(false);
   };
+  console.log(
+    "isFetching.current :: ",
+    isFetching.current,
+    "isFocused :: ",
+    isFocused,
+    "currentPage ::: ",
+    currentPage,
+    "list:: ",
+    list.length
+  );
 
   return (
     <>
+      {/*{isErrorComponentVisible && <ErrorFallbackComponent />} // put this if we want specify error*/}
+      {isFetching.current && <ActivityIndicator />}
       <FlatList
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.list}
-        data={data}
-        renderItem={({index}) => (
+        keyExtractor={(item) => item?.id?.toString()}
+        initialNumToRender={20}
+        onEndReachedThreshold={0.1}
+        onEndReached={handleScroll}
+        data={list}
+        renderItem={({ item }) => (
           <Card style={styles.card}>
             <Card.Content>
-              <Title>List name{index}</Title>
-              <Paragraph>Description</Paragraph>
+              <Title>List name: {item.name}</Title>
+              <Paragraph>Description: {item.description}</Paragraph>
             </Card.Content>
             <Card.Actions>
               <IconButton icon="delete-outline" onPress={showModal} />
@@ -105,12 +198,12 @@ const styles = StyleSheet.create({
   },
   row: {
     flex: 1,
-    justifyContent: 'space-around',
+    justifyContent: "space-around",
   },
   empty: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
