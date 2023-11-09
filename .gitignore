@@ -33,11 +33,12 @@ ios/svist.xcodeproj/project.pbxproj
 
 node_modules/
 yarn.lock
+package-lock.json
 ios/Podfile.lock
 .expo/*
 
 .DS_Store
-
+src.zip
 # Android/IntelliJ
 #
 android/
@@ -63,6 +64,7 @@ yarn.lock
 *.jsbundle
 
 /ios
+_src/*
 # CocoaPods
 /ios/Pods/
 
