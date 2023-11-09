@@ -5,15 +5,7 @@ There is a boilerplate for interviews who applying for the position of **React N
 
 ## Tech stack
 - react
-- redux
-- redux-logic
-- axios
-- formik
-- yup
-- react-native-paper
 - react-navigation
-- jest
-- react testing library
 - typescript
 
 ## Step 1: Start the Metro Server
